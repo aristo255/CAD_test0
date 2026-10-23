@@ -63,7 +63,10 @@ public static class GCode
                 }
                 if (end && (x.HasValue || y.HasValue || z.HasValue)) throw new FormatException("M2/M30 должны быть без перемещения");
                 if (end) break;
-                double Axis(double current, double? next) => next.HasValue ? (absolute ? next.Value : current + next.Value) : current;
+                double Axis(double current, double? next)
+                {
+                    return next.HasValue ? (absolute ? next.Value : current + next.Value) : current;
+                }
                 var target = new Position(Axis(position.X, x), Axis(position.Y, y), Axis(position.Z, z));
                 Validate(target);
                 if (x.HasValue || y.HasValue || z.HasValue)

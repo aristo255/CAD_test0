@@ -37,7 +37,13 @@ public partial class MainForm : Form
         try { moves = GCode.Parse(editor.Text); return true; }
         catch (FormatException e) { MessageBox.Show(this, e.Message, "Ошибка G-кода", MessageBoxButtons.OK, MessageBoxIcon.Warning); return false; }
     }
-    void Preview() { if (Parse()) UpdateUi($"Проверено: {moves.Count} перемещений. XY — вид сверху; начало программы — X0 Y0 Z0."); }
+    private void Preview()
+    {
+        if (Parse())
+        {
+            UpdateUi($"Проверено: {moves.Count} перемещений. XY — вид сверху; начало программы — X0 Y0 Z0.");
+        }
+    }
     void Start()
     {
         if (!paused)
@@ -47,7 +53,14 @@ public partial class MainForm : Form
         }
         paused = false; running = true; clock.Restart(); timer.Start(); UpdateUi("Выполнение программы");
     }
-    void Pause() { timer.Stop(); clock.Stop(); running = false; paused = true; UpdateUi("Пауза. «Пуск» — продолжить."); }
+    private void Pause()
+    {
+        timer.Stop();
+        clock.Stop();
+        running = false;
+        paused = true;
+        UpdateUi("Пауза. «Пуск» — продолжить.");
+    }
     void Reset()
     {
         timer.Stop(); clock.Reset(); running = paused = false; index = 0; distance = 0; position = default; moves.Clear();
@@ -72,7 +85,7 @@ public partial class MainForm : Form
         try { string text = File.ReadAllText(dialog.FileName); Reset(); editor.Text = text; Preview(); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { MessageBox.Show(this, e.Message, "Ошибка чтения"); }
     }
-    void Tick(object? sender, EventArgs e)
+    private void Tick(object? sender, EventArgs e)
     {
         double seconds = Math.Min(clock.Elapsed.TotalSeconds, 0.2); clock.Restart();
         var move = moves[index];
@@ -88,11 +101,14 @@ public partial class MainForm : Form
         }
         UpdateUi($"Строка {moves[index].Line} • перемещение {index + 1}/{moves.Count} • F {moves[index].Feed:F0} мм/мин");
     }
-    void PaintPath(object? sender, PaintEventArgs e)
+    private void PaintPath(object? sender, PaintEventArgs e)
     {
         var g = e.Graphics; g.SmoothingMode = SmoothingMode.AntiAlias;
         float scale = Math.Max(0.01f, Math.Min((canvas.Width - 70) / 300f, (canvas.Height - 70) / 200f));
-        PointF Map(Position p) => new(35 + (float)p.X * scale, canvas.Height - 35 - (float)p.Y * scale);
+        PointF Map(Position p)
+        {
+            return new PointF(35 + (float)p.X * scale, canvas.Height - 35 - (float)p.Y * scale);
+        }
         using var grid = new Pen(Color.FromArgb(48, 60, 76));
         for (int x = 0; x <= 300; x += 25) g.DrawLine(grid, Map(new(x, 0, 0)), Map(new(x, 200, 0)));
         for (int y = 0; y <= 200; y += 25) g.DrawLine(grid, Map(new(0, y, 0)), Map(new(300, y, 0)));
@@ -103,23 +119,87 @@ public partial class MainForm : Form
         g.FillEllipse(Brushes.LimeGreen, p.X - 5, p.Y - 5, 10, 10);
         g.DrawString("XY: 300 × 200 мм • синий: G1 • пунктир: G0 • зелёный: инструмент", Font, Brushes.WhiteSmoke, 8, 8);
     }
-    void OpenButton_Click(object? sender, EventArgs e) => LoadCode();
-    void ExampleButton_Click(object? sender, EventArgs e) { editor.Text = Demo; Reset(); }
-    void PreviewButton_Click(object? sender, EventArgs e) => Preview();
-    void Run_Click(object? sender, EventArgs e) => Start();
-    void Pause_Click(object? sender, EventArgs e) => Pause();
-    void ResetButton_Click(object? sender, EventArgs e) => Reset();
-    void EmergencyButton_Click(object? sender, EventArgs e) => Emergency();
-    void ClearEmergencyButton_Click(object? sender, EventArgs e) { emergency = false; Reset(); }
-    void HomeButton_Click(object? sender, EventArgs e)
+    private void OpenButton_Click(object? sender, EventArgs e)
     {
-        position = default; moves.Clear(); UpdateUi("Возврат в ноль (симуляция)");
+        LoadCode();
     }
-    void XMinusButton_Click(object? sender, EventArgs e) => Jog("X", -1);
-    void XPlusButton_Click(object? sender, EventArgs e) => Jog("X", 1);
-    void YMinusButton_Click(object? sender, EventArgs e) => Jog("Y", -1);
-    void YPlusButton_Click(object? sender, EventArgs e) => Jog("Y", 1);
-    void ZMinusButton_Click(object? sender, EventArgs e) => Jog("Z", -1);
-    void ZPlusButton_Click(object? sender, EventArgs e) => Jog("Z", 1);
-    void MainForm_FormClosed(object? sender, FormClosedEventArgs e) => clock.Stop();
+
+    private void ExampleButton_Click(object? sender, EventArgs e)
+    {
+        editor.Text = Demo;
+        Reset();
+    }
+
+    private void PreviewButton_Click(object? sender, EventArgs e)
+    {
+        Preview();
+    }
+
+    private void Run_Click(object? sender, EventArgs e)
+    {
+        Start();
+    }
+
+    private void Pause_Click(object? sender, EventArgs e)
+    {
+        Pause();
+    }
+
+    private void ResetButton_Click(object? sender, EventArgs e)
+    {
+        Reset();
+    }
+
+    private void EmergencyButton_Click(object? sender, EventArgs e)
+    {
+        Emergency();
+    }
+
+    private void ClearEmergencyButton_Click(object? sender, EventArgs e)
+    {
+        emergency = false;
+        Reset();
+    }
+
+    private void HomeButton_Click(object? sender, EventArgs e)
+    {
+        position = default;
+        moves.Clear();
+        UpdateUi("Возврат в ноль (симуляция)");
+    }
+    private void XMinusButton_Click(object? sender, EventArgs e)
+    {
+        Jog("X", -1);
+    }
+
+    private void XPlusButton_Click(object? sender, EventArgs e)
+    {
+        Jog("X", 1);
+    }
+
+    private void YMinusButton_Click(object? sender, EventArgs e)
+    {
+        Jog("Y", -1);
+    }
+
+    private void YPlusButton_Click(object? sender, EventArgs e)
+    {
+        Jog("Y", 1);
+    }
+
+    private void ZMinusButton_Click(object? sender, EventArgs e)
+    {
+        Jog("Z", -1);
+    }
+
+    private void ZPlusButton_Click(object? sender, EventArgs e)
+    {
+        Jog("Z", 1);
+    }
+
+    private void MainForm_FormClosed(object? sender, FormClosedEventArgs e)
+    {
+        clock.Stop();
+    }
+
 }
