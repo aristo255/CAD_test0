@@ -2,10 +2,14 @@
 
 namespace CncDemo;
 
+// Файл обслуживается визуальным конструктором. Логика кнопок находится в MainForm.cs.
+// При сохранении формы Visual Studio может заново записать оформление этого файла.
 partial class MainForm
 {
     private System.ComponentModel.IContainer components = null;
 
+    // Контейнер освобождает невизуальные компоненты (в том числе timer).
+    // Базовый Dispose освобождает дочерние элементы управления формы.
     protected override void Dispose(bool disposing)
     {
         if (disposing) components?.Dispose();
@@ -16,6 +20,7 @@ partial class MainForm
 
     private void InitializeComponent()
     {
+        // Создаём компоненты и элементы до настройки их свойств и подключения событий.
         components = new System.ComponentModel.Container();
         root = new TableLayoutPanel();
         modeLabel = new Label();
@@ -76,6 +81,8 @@ partial class MainForm
         yPlusButton.Name = "yPlusButton";
         zMinusButton.Name = "zMinusButton";
         zPlusButton.Name = "zPlusButton";
+        // Пять строк: пояснение режима, координаты, редактор/поле, кнопки и статус.
+        // Центральная строка занимает оставшуюся высоту; остальные подстраиваются под содержимое.
         root.ColumnCount = 1;
         root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         root.RowCount = 5;
@@ -100,6 +107,7 @@ partial class MainForm
         coordinates.Font = new Font("Consolas", 18F, FontStyle.Bold);
         coordinates.Padding = new Padding(8);
         coordinates.Text = "X     0.00   Y     0.00   Z     0.00 мм";
+        // Разделитель позволяет менять ширину редактора и области траектории мышью.
         split.Dock = DockStyle.Fill;
         split.Size = new Size(1158, 450);
         split.SplitterDistance = 365;
@@ -114,6 +122,7 @@ partial class MainForm
         canvas.Dock = DockStyle.Fill;
         canvas.BackColor = Color.FromArgb(20, 28, 40);
         canvas.Paint += PaintPath;
+        // Кнопки автоматически переносятся на следующую строку при уменьшении ширины окна.
         controls.Dock = DockStyle.Fill;
         controls.AutoSize = true;
         controls.WrapContents = true;
@@ -236,6 +245,7 @@ partial class MainForm
         status.AutoSize = true;
         status.Padding = new Padding(8);
         status.Text = "Готово";
+        // Интервал 20 мс — желаемая частота обновления; точное время измеряет Stopwatch.
         timer.Interval = 20;
         timer.Tick += Tick;
         AutoScaleDimensions = new SizeF(7F, 15F);
