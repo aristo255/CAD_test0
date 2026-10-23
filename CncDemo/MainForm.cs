@@ -3,18 +3,11 @@ using System.Drawing.Drawing2D;
 
 namespace CncDemo;
 
-public sealed class MainForm : Form
+public partial class MainForm : Form
 {
     const string Demo = "G21 G90\r\nG0 Z10\r\nG0 X30 Y30\r\nG1 Z-2 F120\r\nG1 X180 F600\r\nG1 Y130\r\nG1 X30\r\nG1 Y30\r\nG0 Z10\r\nM30";
-    readonly TextBox editor = new() { Multiline = true, ScrollBars = ScrollBars.Both, AcceptsTab = true, WordWrap = false, Dock = DockStyle.Fill, Font = new Font("Consolas", 12), Text = Demo };
-    readonly Canvas canvas = new() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(20, 28, 40) };
-    readonly Label coordinates = new() { AutoSize = true, Font = new Font("Consolas", 18, FontStyle.Bold), Padding = new Padding(8) };
-    readonly Label status = new() { AutoSize = true, Padding = new Padding(8) };
-    readonly NumericUpDown step = new() { Minimum = 1, Maximum = 50, Value = 5, Width = 65 };
-    readonly System.Windows.Forms.Timer timer = new() { Interval = 20 };
     readonly Stopwatch clock = new();
     readonly List<Button> idleButtons = new();
-    readonly Button run, pause;
     List<Move> moves = new();
     Position position;
     int index;
@@ -23,50 +16,10 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
-        Text = "CNC Demo — симулятор ЧПУ XYZ";
-        Size = new Size(1200, 780); MinimumSize = new Size(980, 650);
-        StartPosition = FormStartPosition.CenterScreen;
-        var root = new TableLayoutPanel { Dock = DockStyle.Fill, RowCount = 5, ColumnCount = 1, Padding = new Padding(10) };
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        Controls.Add(root);
-        root.Controls.Add(new Label { Text = "ДЕМОНСТРАЦИОННЫЙ РЕЖИМ • без подключения к оборудованию • миллиметры", AutoSize = true, Padding = new Padding(8), ForeColor = Color.DarkSlateBlue });
-        root.Controls.Add(coordinates);
-        var split = new SplitContainer { Dock = DockStyle.Fill, SplitterDistance = 365, Size = new Size(1100, 450) };
-        split.Panel1.Controls.Add(editor); split.Panel2.Controls.Add(canvas); root.Controls.Add(split);
-        var controls = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, WrapContents = true };
-        root.Controls.Add(controls);
-        Button Add(string text, Action action, bool idle = false)
-        {
-            var button = new Button { Text = text, AutoSize = true, Height = 34, Margin = new Padding(4) };
-            button.Click += (_, _) => action(); controls.Controls.Add(button);
-            if (idle) idleButtons.Add(button);
-            return button;
-        }
-        Add("Открыть G-код", LoadCode, true);
-        Add("Пример", () => { editor.Text = Demo; Reset(); }, true);
-        Add("Проверить", Preview, true);
-        run = Add("▶ Пуск", Start);
-        pause = Add("Ⅱ Пауза", Pause);
-        Add("■ Стоп / сброс", Reset);
-        var stop = Add("АВАРИЙНЫЙ СТОП", Emergency);
-        stop.BackColor = Color.Firebrick; stop.ForeColor = Color.White;
-        Add("Снять аварию", () => { emergency = false; Reset(); });
-        Add("В ноль", () => { position = default; moves.Clear(); UpdateUi("Возврат в ноль (симуляция)"); }, true);
-        controls.Controls.Add(new Label { Text = "Шаг, мм:", AutoSize = true, Margin = new Padding(8, 12, 0, 0) }); controls.Controls.Add(step);
-        foreach (var axis in new[] { "X", "Y", "Z" })
-            foreach (int sign in new[] { -1, 1 })
-            {
-                string selected = axis; int direction = sign;
-                Add(axis + (sign > 0 ? "+" : "−"), () => Jog(selected, direction), true);
-            }
-        root.Controls.Add(status);
-        canvas.Paint += PaintPath;
-        timer.Tick += Tick;
-        FormClosed += (_, _) => { timer.Dispose(); clock.Stop(); };
+        InitializeComponent();
+        editor.Text = Demo;
+        idleButtons.AddRange(new[] { openButton, exampleButton, previewButton, homeButton,
+            xMinusButton, xPlusButton, yMinusButton, yPlusButton, zMinusButton, zPlusButton });
         UpdateUi("Готово. Проверьте программу или нажмите «Пуск».");
     }
 
@@ -150,5 +103,23 @@ public sealed class MainForm : Form
         g.FillEllipse(Brushes.LimeGreen, p.X - 5, p.Y - 5, 10, 10);
         g.DrawString("XY: 300 × 200 мм • синий: G1 • пунктир: G0 • зелёный: инструмент", Font, Brushes.WhiteSmoke, 8, 8);
     }
-    sealed class Canvas : Panel { public Canvas() { DoubleBuffered = true; ResizeRedraw = true; } }
+    void OpenButton_Click(object? sender, EventArgs e) => LoadCode();
+    void ExampleButton_Click(object? sender, EventArgs e) { editor.Text = Demo; Reset(); }
+    void PreviewButton_Click(object? sender, EventArgs e) => Preview();
+    void Run_Click(object? sender, EventArgs e) => Start();
+    void Pause_Click(object? sender, EventArgs e) => Pause();
+    void ResetButton_Click(object? sender, EventArgs e) => Reset();
+    void EmergencyButton_Click(object? sender, EventArgs e) => Emergency();
+    void ClearEmergencyButton_Click(object? sender, EventArgs e) { emergency = false; Reset(); }
+    void HomeButton_Click(object? sender, EventArgs e)
+    {
+        position = default; moves.Clear(); UpdateUi("Возврат в ноль (симуляция)");
+    }
+    void XMinusButton_Click(object? sender, EventArgs e) => Jog("X", -1);
+    void XPlusButton_Click(object? sender, EventArgs e) => Jog("X", 1);
+    void YMinusButton_Click(object? sender, EventArgs e) => Jog("Y", -1);
+    void YPlusButton_Click(object? sender, EventArgs e) => Jog("Y", 1);
+    void ZMinusButton_Click(object? sender, EventArgs e) => Jog("Z", -1);
+    void ZPlusButton_Click(object? sender, EventArgs e) => Jog("Z", 1);
+    void MainForm_FormClosed(object? sender, FormClosedEventArgs e) => clock.Stop();
 }
